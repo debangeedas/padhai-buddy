@@ -1,8 +1,8 @@
 # Padhai Buddy
 
-Padhai Buddy is a voice-first AI learning platform built for students in India who aren't fluent in English. Students can speak to the AI in Hindi, Hinglish, or English — like talking to a smart senior — and have a real back-and-forth conversation to understand their textbook concepts better.
+Padhai Buddy is a voice-first AI learning platform built for students in India who aren't fluent in English. Students can speak to the AI in Hindi, Hinglish, or English, and have a real back-and-forth conversation to understand their textbook concepts better. It's just like talking to a smart senior. 
 
-The goal is simple: every student deserves a patient teacher who speaks their language. Padhai Buddy uses NVIDIA's Nemotron model to understand spoken questions (even in mixed Hindi-English), retrieves relevant content from NCERT textbooks via RAG, and responds in the student's chosen language with follow-up questions that keep the learning going.
+The goal is simple: every student deserves a patient teacher who speaks their language. Padhai Buddy uses NVIDIA's Nemotron model to understand spoken questions (even in mixed Hindi-English), retrieves relevant content from school textbooks via RAG, and responds in the student's chosen language with follow-up questions that keep the learning going.
 
 ## Features
 
