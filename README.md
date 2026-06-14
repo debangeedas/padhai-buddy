@@ -8,12 +8,11 @@ The goal is simple: every student deserves a patient teacher who speaks their la
 
 - **Voice-first interaction** — tap and talk, just like a conversation with a tutor
 - **Multilingual support** — English, Hinglish (Hindi in Roman script), and Hindi (Devanagari)
-- **NCERT RAG pipeline** — answers grounded in actual textbook content (Class X–XII Biology)
+- **RAG pipeline to surface content from textbooks** — answers grounded in actual textbook content
 - **Conversational teaching** — broad questions get broken into back-and-forth exchanges, not textbook dumps
 - **Academic guardrails** — off-topic questions are politely redirected back to studies
 - **Student profiles** — avatar picker, language preference, GitHub-style activity grid
 - **Chat history** — review past learning sessions
-- **Text-to-speech** — responses are read aloud via ElevenLabs
 
 ## Tech Stack
 
@@ -127,7 +126,7 @@ Open http://localhost:3000, sign up, set your language in Profile, and start ask
 1. Student taps the mic button and speaks their question
 2. Browser's Web Speech API provides a live transcript (used for RAG search)
 3. Raw audio is sent to NVIDIA Nemotron via WebSocket for understanding
-4. Relevant NCERT textbook chunks are retrieved from ChromaDB
+4. Relevant textbook chunks are retrieved from ChromaDB
 5. The model generates a conversational response grounded in textbook content
 6. Response is sent back as text and read aloud via ElevenLabs TTS
 
