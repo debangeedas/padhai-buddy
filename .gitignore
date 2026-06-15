@@ -9,3 +9,6 @@ node_modules/
 frontend/dist/
 textbooks/
 training_data.*
+
+# Local Netlify folder
+.netlify

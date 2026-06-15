@@ -9,6 +9,7 @@ from pathlib import Path
 from elevenlabs import ElevenLabs
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from openai import OpenAI
@@ -16,6 +17,18 @@ from openai import OpenAI
 load_dotenv()
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://padhai-buddy.netlify.app",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 SYSTEM_PROMPTS = {
     "english": """You are a friendly teacher who helps Indian students clear their academic doubts. Think of yourself as a smart senior who sits with a junior and teaches through conversation, not lectures.
@@ -137,7 +150,7 @@ try:
         existing = [c.name for c in chroma_client.list_collections()]
         if COLLECTION_NAME in existing:
             rag_collection = chroma_client.get_collection(COLLECTION_NAME)
-            rag_model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
+            rag_model = SentenceTransformer("all-MiniLM-L6-v2")
             rag_enabled = True
             count = rag_collection.count()
             print(f"[RAG] Loaded {count} chunks from '{COLLECTION_NAME}'")
@@ -612,4 +625,5 @@ async def websocket_chat(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)

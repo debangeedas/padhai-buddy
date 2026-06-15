@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { AVATARS } from '../components/AvatarPicker'
 
+const API_BASE = import.meta.env.VITE_API_URL || ''
+const WS_BASE = import.meta.env.VITE_WS_URL || `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`
+
 const ALL_SUBJECTS = [
   { key: 'physics', label: 'Physics', color: '#60a5fa', prompt: 'I have a doubt in Physics.' },
   { key: 'chemistry', label: 'Chemistry', color: '#f472b6', prompt: 'I have a doubt in Chemistry.' },
@@ -240,8 +243,7 @@ export default function Dashboard({ userId, profile, onNavigate, onLogout }) {
       wsRef.current.onclose = null
       wsRef.current.close()
     }
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const ws = new WebSocket(`${protocol}//${location.host}/ws/chat`)
+    const ws = new WebSocket(`${WS_BASE}/ws/chat`)
     ws.onopen = () => {
       setStatus((prev) => prev === 'Soch raha hai...' ? prev : '')
       setBtnState((prev) => prev === 'processing' ? prev : 'ready')
@@ -432,7 +434,7 @@ export default function Dashboard({ userId, profile, onNavigate, onLogout }) {
     setFcLoading(true)
     try {
       const cls = profile?.class_level || '10'
-      const res = await fetch(`/api/chapters?subject=${encodeURIComponent(subj.key)}&class_level=${encodeURIComponent(cls)}`)
+      const res = await fetch(`${API_BASE}/api/chapters?subject=${encodeURIComponent(subj.key)}&class_level=${encodeURIComponent(cls)}`)
       const data = await res.json()
       setFcAvailableChapters(data.chapters || [])
     } catch {
@@ -465,7 +467,7 @@ export default function Dashboard({ userId, profile, onNavigate, onLogout }) {
       const lang = profile?.language || 'english'
       const chaptersToSend = fcSelectedChapters.length === fcAvailableChapters.length
         ? ['all'] : fcSelectedChapters
-      const res = await fetch('/api/flashcards', {
+      const res = await fetch(`${API_BASE}/api/flashcards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -547,7 +549,7 @@ export default function Dashboard({ userId, profile, onNavigate, onLogout }) {
     setQzLoading(true)
     try {
       const cls = profile?.class_level || '10'
-      const res = await fetch(`/api/chapters?subject=${encodeURIComponent(subj.key)}&class_level=${encodeURIComponent(cls)}`)
+      const res = await fetch(`${API_BASE}/api/chapters?subject=${encodeURIComponent(subj.key)}&class_level=${encodeURIComponent(cls)}`)
       const data = await res.json()
       setQzAvailableChapters(data.chapters || [])
     } catch {
@@ -583,7 +585,7 @@ export default function Dashboard({ userId, profile, onNavigate, onLogout }) {
       const lang = profile?.language || 'english'
       const chaptersToSend = qzSelectedChapters.length === qzAvailableChapters.length
         ? ['all'] : qzSelectedChapters
-      const res = await fetch('/api/quiz', {
+      const res = await fetch(`${API_BASE}/api/quiz`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
