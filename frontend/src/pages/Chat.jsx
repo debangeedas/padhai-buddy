@@ -7,73 +7,98 @@ const styles = {
     flexDirection: 'column',
     height: 'calc(100vh - 53px)',
   },
-  messages: {
+  messagesWrapper: {
+    position: 'relative',
     flex: 1,
     overflowY: 'auto',
-    padding: 20,
+  },
+  messages: {
+    maxWidth: 720,
+    margin: '0 auto',
+    padding: '24px 20px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 16,
+    gap: 20,
   },
   welcome: {
     textAlign: 'center',
-    padding: '60px 20px',
+    padding: '80px 20px 40px',
     color: 'var(--text-secondary)',
   },
   welcomeTitle: {
     color: 'var(--accent)',
-    fontSize: 22,
-    fontWeight: 700,
-    marginBottom: 8,
+    fontSize: 26,
+    fontWeight: 600,
+    marginBottom: 10,
+    letterSpacing: '-0.02em',
   },
-  message: (role) => ({
-    maxWidth: '75%',
-    alignSelf: role === 'user' ? 'flex-end' : 'flex-start',
-    padding: '12px 16px',
-    borderRadius: 14,
+  welcomeSub: {
+    fontSize: 15,
+    lineHeight: 1.6,
+    maxWidth: 360,
+    margin: '0 auto',
+  },
+  userBubble: {
+    maxWidth: '72%',
+    alignSelf: 'flex-end',
+    padding: '10px 16px',
+    borderRadius: '16px 16px 4px 16px',
     fontSize: 14,
     lineHeight: 1.6,
-    background: role === 'user' ? 'var(--user-bg)' : 'var(--bg-card)',
-    border: `1px solid ${role === 'user' ? 'var(--user-border)' : 'var(--border)'}`,
-  }),
-  label: {
+    background: 'var(--user-bg)',
+    border: '1px solid var(--user-border)',
+  },
+  assistantBubble: {
+    maxWidth: '82%',
+    alignSelf: 'flex-start',
+    padding: '14px 18px',
+    borderRadius: '4px 16px 16px 16px',
+    fontSize: 14,
+    lineHeight: 1.7,
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border)',
+  },
+  label: (role) => ({
     fontSize: 11,
-    color: 'var(--accent)',
+    color: role === 'user' ? 'var(--user-border)' : 'var(--accent)',
     marginBottom: 4,
     fontWeight: 600,
     textTransform: 'uppercase',
-  },
+    letterSpacing: '0.04em',
+  }),
   controls: {
-    padding: 16,
+    padding: '14px 16px',
     borderTop: '1px solid var(--border)',
     background: 'var(--bg-secondary)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   talkBtn: (state) => ({
-    width: 72,
-    height: 72,
+    width: 64,
+    height: 64,
     borderRadius: '50%',
-    border: `3px solid ${state === 'recording' ? 'var(--danger)' : state === 'playing' ? '#f59e0b' : 'var(--accent)'}`,
-    background: state === 'recording' ? 'var(--danger)' : state === 'processing' ? '#333' : state === 'playing' ? 'transparent' : 'transparent',
-    color: state === 'recording' ? 'white' : state === 'processing' ? '#888' : state === 'playing' ? '#f59e0b' : 'var(--accent)',
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: 'pointer',
+    border: `2px solid ${state === 'recording' ? 'var(--danger)' : state === 'playing' ? '#f59e0b' : 'var(--accent)'}`,
+    background: state === 'recording' ? 'var(--danger)' : state === 'processing' ? '#222' : 'transparent',
+    color: state === 'recording' ? 'white' : state === 'processing' ? '#666' : state === 'playing' ? '#f59e0b' : 'var(--accent)',
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: state === 'processing' ? 'default' : 'pointer',
     pointerEvents: state === 'processing' ? 'none' : 'auto',
     animation: state === 'recording' ? 'pulse 1s infinite' : 'none',
+    transition: 'border-color 0.2s, background 0.2s',
+    letterSpacing: '0.05em',
   }),
-  stopBtn: {
-    width: 40,
-    height: 40,
+  cancelBtn: {
+    width: 34,
+    height: 34,
     borderRadius: '50%',
-    border: '2px solid var(--danger)',
+    border: '1.5px solid var(--danger)',
     background: 'transparent',
     color: 'var(--danger)',
-    fontSize: 18,
-    fontWeight: 700,
+    fontSize: 15,
+    fontWeight: 600,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -83,21 +108,22 @@ const styles = {
     display: 'flex',
     gap: 8,
     width: '100%',
-    maxWidth: 500,
+    maxWidth: 480,
   },
   textInput: {
     flex: 1,
     padding: '10px 14px',
-    borderRadius: 8,
+    borderRadius: 10,
     border: '1px solid var(--border)',
     background: 'var(--bg-card)',
     color: 'var(--text-primary)',
     fontSize: 14,
     outline: 'none',
+    transition: 'border-color 0.15s',
   },
   sendBtn: {
-    padding: '10px 20px',
-    borderRadius: 8,
+    padding: '10px 18px',
+    borderRadius: 10,
     border: 'none',
     background: 'var(--accent)',
     color: 'var(--bg-primary)',
@@ -105,38 +131,36 @@ const styles = {
     fontSize: 14,
   },
   status: {
-    fontSize: 13,
+    fontSize: 12,
     color: 'var(--text-secondary)',
-    minHeight: 18,
+    minHeight: 16,
   },
   liveTranscript: {
     fontSize: 12,
     color: 'var(--accent)',
     fontStyle: 'italic',
-    minHeight: 18,
+    minHeight: 16,
+    opacity: 0.85,
   },
   btnRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: 16,
+    gap: 14,
   },
   newChatBtn: {
     position: 'absolute',
     top: 12,
     right: 16,
-    padding: '6px 14px',
-    borderRadius: 8,
+    padding: '5px 12px',
+    borderRadius: 6,
     border: '1px solid var(--border)',
     background: 'var(--bg-card)',
     color: 'var(--text-secondary)',
     fontSize: 12,
-    fontWeight: 600,
+    fontWeight: 500,
     cursor: 'pointer',
-  },
-  messagesWrapper: {
-    position: 'relative',
-    flex: 1,
-    overflowY: 'auto',
+    zIndex: 2,
+    transition: 'border-color 0.15s',
   },
 }
 
@@ -417,27 +441,31 @@ export default function Chat({ userId }) {
           <button style={styles.newChatBtn} onClick={startNewChat}>+ New Chat</button>
         )}
         <div style={styles.messages}>
-        {messages.length === 0 && (
-          <div style={styles.welcome}>
-            <div style={styles.welcomeTitle}>Namaste!</div>
-            <div>Mic button dabao aur apna doubt pooch lo, ya neeche type karo.</div>
-          </div>
-        )}
-        {messages.map((msg, i) => (
-          <div key={i} style={styles.message(msg.role)}>
-            <div style={styles.label}>{msg.role === 'user' ? 'Tum' : 'Padhai Buddy'}</div>
-            {msg.content}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+          {messages.length === 0 && (
+            <div style={styles.welcome}>
+              <div style={styles.welcomeTitle}>Namaste!</div>
+              <div style={styles.welcomeSub}>
+                Mic button dabao aur apna doubt pooch lo, ya neeche type karo.
+              </div>
+            </div>
+          )}
+          {messages.map((msg, i) => (
+            <div key={i} style={msg.role === 'user' ? styles.userBubble : styles.assistantBubble}>
+              <div style={styles.label(msg.role)}>
+                {msg.role === 'user' ? 'You' : 'Padhai Buddy'}
+              </div>
+              {msg.content}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
       <div style={styles.controls}>
         <div style={styles.btnRow}>
           {btnState === 'recording' && (
-            <button style={styles.stopBtn} onClick={cancelRecording} title="Cancel recording">
-              x
+            <button style={styles.cancelBtn} onClick={cancelRecording} title="Cancel recording">
+              ✕
             </button>
           )}
           <button style={styles.talkBtn(btnState)} onClick={handleMainButton}>
@@ -450,13 +478,13 @@ export default function Chat({ userId }) {
           <input
             style={styles.textInput}
             type="text"
-            placeholder="Ya yahan type karo..."
+            placeholder="Type your doubt here..."
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendText()}
             disabled={btnState === 'processing'}
           />
-          <button style={styles.sendBtn} onClick={sendText} disabled={btnState === 'processing'}>Bhejo</button>
+          <button style={styles.sendBtn} onClick={sendText} disabled={btnState === 'processing'}>Send</button>
         </div>
       </div>
     </div>

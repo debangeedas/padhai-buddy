@@ -1,14 +1,27 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 const styles = {
-  container: {
+  page: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100vh',
+    minHeight: '100vh',
     padding: 24,
+  },
+  backLink: {
+    position: 'absolute',
+    top: 24,
+    left: 32,
+    color: 'var(--text-secondary)',
+    textDecoration: 'none',
+    fontSize: 14,
+    fontWeight: 500,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
   },
   card: {
     background: 'var(--bg-card)',
@@ -24,6 +37,7 @@ const styles = {
     fontWeight: 700,
     color: 'var(--accent)',
     marginBottom: 8,
+    letterSpacing: '-0.02em',
   },
   subtitle: {
     color: 'var(--text-secondary)',
@@ -64,11 +78,11 @@ const styles = {
   },
 }
 
-export default function Login() {
+export default function Login({ initialMode }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(initialMode === 'signup')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -93,7 +107,9 @@ export default function Login() {
   }
 
   return (
-    <div style={styles.container}>
+    <div style={styles.page}>
+      <Link to="/" style={styles.backLink}>← Back</Link>
+
       <form style={styles.card} onSubmit={handleSubmit}>
         <div style={styles.title}>Padhai Buddy</div>
         <div style={styles.subtitle}>
@@ -136,9 +152,9 @@ export default function Login() {
 
         <div style={styles.toggle}>
           {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <a href="#" onClick={(e) => { e.preventDefault(); setIsSignUp(!isSignUp); setError('') }}>
+          <Link to={isSignUp ? '/login' : '/signup'}>
             {isSignUp ? 'Sign in' : 'Sign up'}
-          </a>
+          </Link>
         </div>
       </form>
     </div>

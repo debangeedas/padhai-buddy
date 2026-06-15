@@ -36,6 +36,7 @@ Teaching style:
 - When a student asks a BROAD question (e.g. "tell me about the digestive system"), do NOT give a vague 2-line summary. Instead, start with ONE key concept and explain it well with an example or analogy, then ask a follow-up question to guide the conversation deeper. For example: "Let's start from the beginning — do you know what happens to food the moment you put it in your mouth? The saliva has enzymes that start breaking down starch right there! What do you think happens next when you swallow?"
 - Make it feel like a conversation, not a textbook dump. Break big topics into a series of back-and-forth exchanges.
 - Use analogies and relatable examples to make concepts stick (e.g. "Think of villi in the small intestine like tiny fingers — they increase surface area so your body can absorb more nutrients, like how a towel with more folds soaks up more water").
+- IMPORTANT: Before using any analogy, make sure the comparison is FACTUALLY ACCURATE. The real-world object in your analogy must actually work the way you describe it. For example, do NOT say "like a washing machine breaks clothes into small pieces" because washing machines do NOT break clothes into pieces. Bad analogies confuse students more than no analogy at all. If you cannot think of a correct analogy, just explain the concept clearly without one.
 - End your responses with a question or a prompt that invites the student to think or continue the conversation.
 - If the student asks a SPECIFIC doubt (e.g. "what is the role of bile?"), give a clear, complete answer — no need to stretch it artificially.""",
 
@@ -64,6 +65,7 @@ Teaching style:
 - Jab student koi BROAD question pooche (jaise "digestive system samjhao"), toh 2 line ka vague answer MAT dein. Ek key concept se shuru karein, ache se samjhaiye with example ya analogy, aur phir ek follow-up question poochein taaki conversation aage badhe. Jaise: "Dekhiye, jab aap roti khate hain na, toh muh mein hi saliva ka amylase enzyme starch todna shuru kar deta hai! Ab bataiye, jab aap nighaalte hain toh kya hota hai next?"
 - Conversation jaisi feel honi chahiye, textbook copy-paste nahi. Bade topics ko chhote chhote exchanges mein todein.
 - Analogies aur relatable examples dein (jaise "small intestine ke villi ko samjhiye aise — jaise towel mein jitni zyada folds, utna zyada paani soak karta hai, waise hi villi surface area badhaate hain nutrients absorb karne ke liye").
+- IMPORTANT: Koi bhi analogy use karne se pehle check karein ki comparison FACTUALLY CORRECT hai. Real-world object actually waisa kaam karta ho jaisa aap describe kar rahe hain. Jaise "washing machine kapde ko chhote pieces mein todti hai" GALAT hai kyunki washing machine kapde nahi todti. Galat analogy se student aur confuse hota hai. Agar sahi analogy nahi sujh rahi, toh bina analogy ke clearly samjha dein.
 - Apna response ek question ya prompt se khatam karein taaki student soche aur baat aage badhe.
 - Agar student SPECIFIC doubt pooche (jaise "bile ka kya kaam hai?"), toh seedha clear answer dein — artificially mat stretch karein.""",
 
@@ -91,6 +93,7 @@ Teaching style:
 - जब student कोई BROAD question पूछे (जैसे "digestive system समझाइए"), तो 2 line का vague answer मत दें। एक key concept से शुरू करें, अच्छे से समझाइए with example या analogy, और फिर एक follow-up question पूछें ताकि बातचीत आगे बढ़े। जैसे: "देखिए, जब आप रोटी खाते हैं, तो मुँह में ही saliva का amylase enzyme starch तोड़ना शुरू कर देता है! अब बताइए, जब आप निगलते हैं तो अगला step क्या होता है?"
 - बातचीत जैसी feel होनी चाहिए, textbook copy-paste नहीं। बड़े topics को छोटे छोटे exchanges में तोड़ें।
 - Analogies और relatable examples दें (जैसे "small intestine की villi को ऐसे समझिए — जैसे towel में जितनी ज़्यादा folds, उतना ज़्यादा पानी soak करता है, वैसे ही villi surface area बढ़ाती हैं nutrients absorb करने के लिए")।
+- IMPORTANT: कोई भी analogy use करने से पहले check करें कि comparison FACTUALLY CORRECT है। Real-world object actually वैसा काम करता हो जैसा आप describe कर रहे हैं। जैसे "washing machine कपड़े को छोटे pieces में तोड़ती है" गलत है क्योंकि washing machine कपड़े नहीं तोड़ती। गलत analogy से student और confuse होता है। अगर सही analogy नहीं सूझ रही, तो बिना analogy के clearly समझा दें।
 - अपना response एक question या prompt से खत्म करें ताकि student सोचे और बात आगे बढ़े।
 - अगर student SPECIFIC doubt पूछे (जैसे "bile का क्या काम है?"), तो सीधा clear answer दें — artificially मत stretch करें।""",
 }
@@ -139,9 +142,9 @@ except ImportError:
     print("[RAG] chromadb or sentence-transformers not installed. RAG disabled.")
 
 
-def retrieve_context(query: str, n_results: int = 5) -> str:
+def retrieve_context(query: str, n_results: int = 5) -> tuple[str, list[dict]]:
     if not rag_enabled:
-        return ""
+        return "", []
 
     query_embedding = rag_model.encode([query]).tolist()
     results = rag_collection.query(
@@ -150,9 +153,11 @@ def retrieve_context(query: str, n_results: int = 5) -> str:
     )
 
     if not results["documents"] or not results["documents"][0]:
-        return ""
+        return "", []
 
     context_parts = []
+    sources = []
+    seen = set()
     for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
         cls = meta.get("class", "?")
         subject = meta.get("subject", "?")
@@ -160,9 +165,19 @@ def retrieve_context(query: str, n_results: int = 5) -> str:
         page = meta.get("page", "?")
         context_parts.append(f"[Class {cls} {subject}, Chapter {chapter}, Page {page}]\n{doc}")
 
+        source_key = f"{cls}-{subject}-{chapter}-{page}"
+        if source_key not in seen:
+            seen.add(source_key)
+            sources.append({
+                "class": cls,
+                "subject": subject,
+                "chapter": chapter,
+                "page": page,
+            })
+
     context = "\n\n---\n\n".join(context_parts)
     print(f"[RAG] Retrieved {len(context_parts)} chunks for query")
-    return context
+    return context, sources
 
 
 def extract_reply(completion) -> str:
@@ -215,13 +230,13 @@ def build_messages(conversation: list[dict], language: str = "english", textbook
     return [{"role": "system", "content": system}] + conversation
 
 
-def transcribe_and_respond(audio_base64: str, conversation: list[dict], language: str = "english", browser_transcript: str = "") -> str:
-    # Use browser transcript for RAG search (more accurate than model transcription)
+def transcribe_and_respond(audio_base64: str, conversation: list[dict], language: str = "english", browser_transcript: str = "") -> tuple[str, list[dict]]:
     rag_query = browser_transcript if browser_transcript and browser_transcript != "(Voice message)" else ""
 
     context = ""
+    sources = []
     if rag_enabled and rag_query:
-        context = retrieve_context(rag_query)
+        context, sources = retrieve_context(rag_query)
         if context:
             print(f"[INFO] RAG found context for: {rag_query[:80]}...")
 
@@ -259,14 +274,12 @@ def transcribe_and_respond(audio_base64: str, conversation: list[dict], language
         "content": browser_transcript or "[Student asked via voice]",
     }
 
-    # Only add to conversation history if we got a real reply (not a fallback)
     if reply and not reply.startswith("Maaf kijiye"):
         conversation.append({"role": "assistant", "content": reply})
     else:
-        # Remove the user message too so the conversation stays clean
         conversation.pop()
 
-    return reply
+    return reply, sources
 
 
 async def text_to_speech(text: str) -> bytes:
@@ -281,10 +294,10 @@ async def text_to_speech(text: str) -> bytes:
     return await asyncio.to_thread(_generate)
 
 
-def respond_to_text(user_text: str, conversation: list[dict], language: str = "english") -> str:
+def respond_to_text(user_text: str, conversation: list[dict], language: str = "english") -> tuple[str, list[dict]]:
     conversation.append({"role": "user", "content": user_text})
 
-    context = retrieve_context(user_text) if rag_enabled else ""
+    context, sources = retrieve_context(user_text) if rag_enabled else ("", [])
 
     msgs = build_messages(conversation, language=language, textbook_context=context)
     print(f"[DEBUG] Conversation has {len(msgs)} messages (including system)")
@@ -301,7 +314,7 @@ def respond_to_text(user_text: str, conversation: list[dict], language: str = "e
         conversation.append({"role": "assistant", "content": reply})
     else:
         conversation.pop()
-    return reply
+    return reply, sources
 
 
 @app.websocket("/ws/chat")
@@ -321,12 +334,12 @@ async def websocket_chat(websocket: WebSocket):
                     audio_b64 = data["audio"]
                     browser_transcript = data.get("transcript", "")
                     print(f"[INFO] Received audio, size: {len(audio_b64)} chars, lang: {language}, transcript: {browser_transcript[:80]}")
-                    reply = await asyncio.to_thread(
+                    reply, sources = await asyncio.to_thread(
                         transcribe_and_respond, audio_b64, conversation, language, browser_transcript
                     )
                 else:
                     print(f"[INFO] Received text: {data['text']}, lang: {language}")
-                    reply = await asyncio.to_thread(
+                    reply, sources = await asyncio.to_thread(
                         respond_to_text, data["text"], conversation, language
                     )
 
@@ -343,6 +356,7 @@ async def websocket_chat(websocket: WebSocket):
                 await websocket.send_json({
                     "text": reply,
                     "audio": audio_b64_response,
+                    "sources": sources,
                 })
                 print("[INFO] Response sent to client")
             except Exception as e:

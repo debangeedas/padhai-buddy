@@ -8,3 +8,4 @@ chroma_db/
 node_modules/
 frontend/dist/
 textbooks/
+training_data.*
