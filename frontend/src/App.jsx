@@ -75,11 +75,16 @@ export default function App() {
 function AuthenticatedApp({ userId, profile, onProfileUpdate }) {
   const [view, setView] = useState('dashboard')
 
+  async function handleLogout() {
+    await supabase.auth.signOut()
+  }
+
   if (view === 'profile') {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div style={topNav}>
           <button style={backBtn} onClick={() => setView('dashboard')}>← Back to chats</button>
+          <button style={logoutNavBtn} onClick={handleLogout}>Log out</button>
         </div>
         <div style={{ flex: 1, overflow: 'auto' }}>
           <Profile userId={userId} />
@@ -93,6 +98,7 @@ function AuthenticatedApp({ userId, profile, onProfileUpdate }) {
       userId={userId}
       profile={profile}
       onNavigate={(v) => setView(v)}
+      onLogout={handleLogout}
     />
   )
 }
@@ -101,6 +107,9 @@ const topNav = {
   padding: '12px 20px',
   borderBottom: '1px solid var(--border)',
   background: 'var(--bg-secondary)',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
 }
 
 const backBtn = {
@@ -109,5 +118,16 @@ const backBtn = {
   color: 'var(--text-secondary)',
   fontSize: 14,
   fontWeight: 500,
+  cursor: 'pointer',
+}
+
+const logoutNavBtn = {
+  background: 'none',
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  fontWeight: 500,
+  padding: '6px 14px',
   cursor: 'pointer',
 }

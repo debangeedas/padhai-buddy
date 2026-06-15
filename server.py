@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import base64
 import asyncio
 import traceback
@@ -8,6 +9,8 @@ from pathlib import Path
 from elevenlabs import ElevenLabs
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from openai import OpenAI
 
 load_dotenv()
@@ -108,6 +111,10 @@ nvidia_client = OpenAI(
     api_key=os.getenv("NVIDIA_API_KEY", ""),
 )
 
+openai_client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY", ""),
+)
+
 eleven_client = ElevenLabs(
     api_key=os.getenv("ELEVENLABS_API_KEY", ""),
 )
@@ -130,7 +137,7 @@ try:
         existing = [c.name for c in chroma_client.list_collections()]
         if COLLECTION_NAME in existing:
             rag_collection = chroma_client.get_collection(COLLECTION_NAME)
-            rag_model = SentenceTransformer("all-MiniLM-L6-v2")
+            rag_model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
             rag_enabled = True
             count = rag_collection.count()
             print(f"[RAG] Loaded {count} chunks from '{COLLECTION_NAME}'")
@@ -231,34 +238,40 @@ def build_messages(conversation: list[dict], language: str = "english", textbook
 
 
 def transcribe_and_respond(audio_base64: str, conversation: list[dict], language: str = "english", browser_transcript: str = "") -> tuple[str, list[dict]]:
-    rag_query = browser_transcript if browser_transcript and browser_transcript != "(Voice message)" else ""
+    # Step 1: Transcribe audio using Nemotron (always)
+    print("[INFO] Transcribing audio with Nemotron...")
+    transcription = nvidia_client.chat.completions.create(
+        model="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "audio_url", "audio_url": {"url": f"data:audio/webm;base64,{audio_base64}"}},
+                {"type": "text", "text": "Transcribe exactly what the student said. Output ONLY the transcription, nothing else."},
+            ],
+        }],
+        temperature=0.2,
+        max_tokens=512,
+    )
+    user_text = extract_reply(transcription).strip()
+    print(f"[INFO] Nemotron transcription: {user_text[:100]}...")
+    if not user_text:
+        user_text = "[Student asked via voice]"
 
+    # Step 2: RAG lookup
     context = ""
     sources = []
-    if rag_enabled and rag_query:
-        context, sources = retrieve_context(rag_query)
+    if rag_enabled and user_text and user_text != "[Student asked via voice]":
+        context, sources = retrieve_context(user_text)
         if context:
-            print(f"[INFO] RAG found context for: {rag_query[:80]}...")
+            print(f"[INFO] RAG found context for: {user_text[:80]}...")
 
-    conversation.append({
-        "role": "user",
-        "content": [
-            {
-                "type": "audio_url",
-                "audio_url": {"url": f"data:audio/webm;base64,{audio_base64}"},
-            },
-            {
-                "type": "text",
-                "text": "Student ne ye audio mein apna doubt poochha hai. Isko samajh ke jawab de.",
-            },
-        ],
-    })
-
-    print("[INFO] Sending audio to Nemotron Omni API...")
+    # Step 3: Generate teaching response with GPT-4o-mini
+    conversation.append({"role": "user", "content": user_text})
+    print("[INFO] Generating response with GPT-4o-mini...")
     msgs = build_messages(conversation, language=language, textbook_context=context)
     print(f"[DEBUG] Conversation has {len(msgs)} messages (including system)")
-    completion = nvidia_client.chat.completions.create(
-        model="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+    completion = openai_client.chat.completions.create(
+        model="gpt-4o-mini",
         messages=msgs,
         temperature=0.7,
         top_p=0.95,
@@ -267,12 +280,6 @@ def transcribe_and_respond(audio_base64: str, conversation: list[dict], language
 
     reply = extract_reply(completion)
     print(f"[INFO] Reply: {reply[:100]}...")
-
-    # Replace audio with text placeholder for future messages
-    conversation[-1] = {
-        "role": "user",
-        "content": browser_transcript or "[Student asked via voice]",
-    }
 
     if reply and not reply.startswith("Maaf kijiye"):
         conversation.append({"role": "assistant", "content": reply})
@@ -301,8 +308,8 @@ def respond_to_text(user_text: str, conversation: list[dict], language: str = "e
 
     msgs = build_messages(conversation, language=language, textbook_context=context)
     print(f"[DEBUG] Conversation has {len(msgs)} messages (including system)")
-    completion = nvidia_client.chat.completions.create(
-        model="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+    completion = openai_client.chat.completions.create(
+        model="gpt-4o-mini",
         messages=msgs,
         temperature=0.7,
         top_p=0.95,
@@ -315,6 +322,238 @@ def respond_to_text(user_text: str, conversation: list[dict], language: str = "e
     else:
         conversation.pop()
     return reply, sources
+
+
+# --- Flashcard API ---
+
+CLASS_NUM_TO_ROMAN = {
+    "6": "vi", "7": "vii", "8": "viii", "9": "ix", "10": "x",
+    "11": "xi", "12": "xii",
+}
+
+SUBJECT_ALIASES = {
+    "sst": ["social science", "social studies"],
+    "science": ["science"],
+    "maths": ["maths", "math", "mathematics"],
+    "physics": ["physics"],
+    "chemistry": ["chemistry"],
+    "biology": ["biology"],
+    "english": ["english"],
+    "hindi": ["hindi"],
+    "history": ["history"],
+}
+
+
+def match_subject(query_key, meta_subject):
+    meta_lower = meta_subject.lower().replace("-", " ").replace("_", " ")
+    aliases = SUBJECT_ALIASES.get(query_key.lower(), [query_key.lower()])
+    return any(alias in meta_lower for alias in aliases)
+
+
+def match_class(query_level, meta_class):
+    meta_lower = str(meta_class).lower().replace("-", " ").replace("_", " ")
+    cls = query_level.replace("Class ", "").strip()
+    roman = CLASS_NUM_TO_ROMAN.get(cls, cls.lower())
+    return meta_lower == roman or meta_lower == cls
+
+
+@app.get("/api/chapters")
+async def get_chapters(subject: str, class_level: str):
+    if not rag_enabled:
+        return JSONResponse({"chapters": []})
+    all_meta = rag_collection.get(include=["metadatas"])["metadatas"]
+    chapters = set()
+    for meta in all_meta:
+        meta_subj = meta.get("subject", "")
+        meta_cls = meta.get("class", "")
+        if match_subject(subject, meta_subj) and match_class(class_level, meta_cls):
+            chapters.add(str(meta.get("chapter", "")))
+    sorted_chapters = sorted(chapters, key=lambda x: int(x) if x.isdigit() else 999)
+    return JSONResponse({"chapters": sorted_chapters})
+
+
+class FlashcardRequest(BaseModel):
+    subject: str
+    class_level: str
+    chapters: list[str]
+    count: int = 10
+    language: str = "english"
+
+
+FLASHCARD_PROMPT = """You are creating flashcards for an Indian school student studying {subject} (Class {class_level}).
+
+From the textbook content below, generate exactly {count} flashcards. Each flashcard has:
+- "front": A clear, specific question (1-2 sentences)
+- "back": A concise answer (2-3 sentences max)
+- "hint": A one-line hint to help recall
+
+Language: {lang_instruction}
+
+RULES:
+- Questions should test understanding, not just recall. Mix "what", "why", "how", and "compare" questions.
+- Answers must be factually accurate based on the textbook content.
+- Keep answers concise — this is a flashcard, not an essay.
+- Cover different parts of the content, don't cluster around one section.
+
+TEXTBOOK CONTENT:
+---
+{content}
+---
+
+Output ONLY a JSON array, no other text:
+[
+  {{"front": "question", "back": "answer", "hint": "hint"}},
+  ...
+]"""
+
+LANG_INSTRUCTIONS = {
+    "english": "Use simple English a Class 10 student would understand.",
+    "hinglish": "Use Hinglish — Hindi words in Roman/Latin script mixed with English.",
+    "hindi": "Use Hindi in Devanagari script. Technical terms can be in English.",
+}
+
+
+@app.post("/api/flashcards")
+async def generate_flashcards(req: FlashcardRequest):
+    if not rag_enabled:
+        return JSONResponse({"error": "RAG not enabled"}, status_code=503)
+
+    all_data = rag_collection.get(include=["documents", "metadatas"])
+    docs = all_data["documents"]
+    metas = all_data["metadatas"]
+
+    matched_chunks = []
+    for doc, meta in zip(docs, metas):
+        meta_ch = str(meta.get("chapter", ""))
+        if match_subject(req.subject, meta.get("subject", "")) and match_class(req.class_level, meta.get("class", "")):
+            if "all" in req.chapters or meta_ch in req.chapters:
+                matched_chunks.append(doc)
+
+    if not matched_chunks:
+        return JSONResponse({"error": "No content found for this subject/chapter"}, status_code=404)
+
+    combined = "\n\n".join(matched_chunks[:40])
+    if len(combined) > 12000:
+        combined = combined[:12000]
+
+    prompt = FLASHCARD_PROMPT.format(
+        subject=req.subject,
+        class_level=req.class_level,
+        count=req.count,
+        lang_instruction=LANG_INSTRUCTIONS.get(req.language, LANG_INSTRUCTIONS["english"]),
+        content=combined,
+    )
+
+    def _generate():
+        completion = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=4096,
+        )
+        text = completion.choices[0].message.content.strip()
+        start = text.find("[")
+        end = text.rfind("]") + 1
+        if start == -1 or end == 0:
+            return []
+        return json.loads(text[start:end])
+
+    try:
+        cards = await asyncio.to_thread(_generate)
+        return JSONResponse({"flashcards": cards})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# --- Quiz API ---
+
+QUIZ_PROMPT = """You are creating a revision quiz for an Indian school student studying {subject} (Class {class_level}).
+
+From the textbook content below, generate exactly {count} multiple-choice questions. Each question has:
+- "question": A clear question testing understanding (not just recall)
+- "options": An array of exactly 4 options (strings)
+- "correct": The index of the correct option (0-3)
+- "explanation": A 1-2 sentence explanation of why the correct answer is right
+
+Language: {lang_instruction}
+
+RULES:
+- Mix difficulty: some easy recall, some application-based, some analytical.
+- All 4 options should be plausible — no obviously silly distractors.
+- Explanations should teach, not just state the answer.
+- Cover different parts of the content, don't cluster around one section.
+- Options should be concise (1 short sentence or phrase each).
+
+TEXTBOOK CONTENT:
+---
+{content}
+---
+
+Output ONLY a JSON array, no other text:
+[
+  {{"question": "...", "options": ["A", "B", "C", "D"], "correct": 0, "explanation": "..."}},
+  ...
+]"""
+
+
+class QuizRequest(BaseModel):
+    subject: str
+    class_level: str
+    chapters: list[str]
+    count: int = 10
+    language: str = "english"
+
+
+@app.post("/api/quiz")
+async def generate_quiz(req: QuizRequest):
+    if not rag_enabled:
+        return JSONResponse({"error": "RAG not enabled"}, status_code=503)
+
+    all_data = rag_collection.get(include=["documents", "metadatas"])
+    docs = all_data["documents"]
+    metas = all_data["metadatas"]
+
+    matched_chunks = []
+    for doc, meta in zip(docs, metas):
+        meta_ch = str(meta.get("chapter", ""))
+        if match_subject(req.subject, meta.get("subject", "")) and match_class(req.class_level, meta.get("class", "")):
+            if "all" in req.chapters or meta_ch in req.chapters:
+                matched_chunks.append(doc)
+
+    if not matched_chunks:
+        return JSONResponse({"error": "No content found for this subject/chapter"}, status_code=404)
+
+    combined = "\n\n".join(matched_chunks[:40])
+    if len(combined) > 12000:
+        combined = combined[:12000]
+
+    prompt = QUIZ_PROMPT.format(
+        subject=req.subject,
+        class_level=req.class_level,
+        count=req.count,
+        lang_instruction=LANG_INSTRUCTIONS.get(req.language, LANG_INSTRUCTIONS["english"]),
+        content=combined,
+    )
+
+    def _generate():
+        completion = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=4096,
+        )
+        text = completion.choices[0].message.content.strip()
+        start = text.find("[")
+        end = text.rfind("]") + 1
+        if start == -1 or end == 0:
+            return []
+        return json.loads(text[start:end])
+
+    try:
+        questions = await asyncio.to_thread(_generate)
+        return JSONResponse({"questions": questions})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.websocket("/ws/chat")
