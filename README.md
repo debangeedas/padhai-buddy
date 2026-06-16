@@ -2,7 +2,7 @@
 
 Padhai Buddy is a voice-first AI learning platform built for students in India who aren't fluent in English. Students can speak to the AI in Hindi, Hinglish, or English, and have a real back-and-forth conversation to understand their textbook concepts better. It's just like talking to a smart senior. 
 
-The goal is simple: every student deserves a patient teacher who speaks their language. Padhai Buddy uses NVIDIA's Nemotron model to understand spoken questions (even in mixed Hindi-English), retrieves relevant content from school textbooks via RAG, and responds in the student's chosen language with follow-up questions that keep the learning going.
+The goal is simple: every student deserves a patient teacher who speaks their language. Padhai Buddy uses OpenAI Whisper to transcribe spoken questions (even in mixed Hindi-English), retrieves relevant content from school textbooks via RAG, and responds in the student's chosen language with follow-up questions that keep the learning going.
 
 ## Features
 
@@ -18,7 +18,8 @@ The goal is simple: every student deserves a patient teacher who speaks their la
 
 | Layer | Technology |
 |-------|------------|
-| AI Model | NVIDIA Nemotron-3-Nano-Omni-30B (audio-in, text-out via NIM API) |
+| Speech-to-Text | OpenAI Whisper (can switch to ElevenLabs Scribe v2 — see server.py) |
+| Teaching AI | OpenAI GPT-4o-mini |
 | Backend | FastAPI + WebSocket |
 | Frontend | React + Vite |
 | Auth & DB | Supabase (auth, profiles, chat sessions, messages) |
@@ -31,7 +32,7 @@ The goal is simple: every student deserves a patient teacher who speaks their la
 
 - Python 3.10+
 - Node.js 18+
-- An [NVIDIA NIM](https://build.nvidia.com/) API key
+- An [OpenAI](https://platform.openai.com/) API key
 - An [ElevenLabs](https://elevenlabs.io/) API key (free tier works, limited credits)
 - A [Supabase](https://supabase.com/) project
 
@@ -59,7 +60,7 @@ pip install chromadb sentence-transformers
 Create a `.env` file in the project root:
 
 ```
-NVIDIA_API_KEY=your_nvidia_api_key
+OPENAI_API_KEY=your_openai_api_key
 ELEVENLABS_API_KEY=your_elevenlabs_api_key
 ```
 
@@ -125,9 +126,9 @@ Open http://localhost:3000, sign up, set your language in Profile, and start ask
 
 1. Student taps the mic button and speaks their question
 2. Browser's Web Speech API provides a live transcript (used for RAG search)
-3. Raw audio is sent to NVIDIA Nemotron via WebSocket for understanding
+3. Audio is sent to OpenAI Whisper via WebSocket for transcription (switchable to ElevenLabs Scribe v2)
 4. Relevant textbook chunks are retrieved from ChromaDB
-5. The model generates a conversational response grounded in textbook content
+5. GPT-4o-mini generates a conversational response grounded in textbook content
 6. Response is sent back as text and read aloud via ElevenLabs TTS
 
 ## License

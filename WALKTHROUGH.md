@@ -23,7 +23,7 @@ Millions of Indian students study from NCERT textbooks but don't have access to 
 | Frontend | React + Vite (SPA) |
 | Backend | Python FastAPI + WebSocket |
 | AI (Teaching) | OpenAI GPT-4o-mini |
-| AI (Speech-to-Text) | NVIDIA Nemotron via NIM API |
+| AI (Speech-to-Text) | OpenAI Whisper (switchable to ElevenLabs Scribe v2 — see server.py) |
 | Text-to-Speech | ElevenLabs (multilingual v2) |
 | RAG (Textbook retrieval) | ChromaDB + sentence-transformers |
 | Auth & Database | Supabase (PostgreSQL + Row Level Security) |
@@ -116,7 +116,7 @@ When starting a new chat, students see:
 - **BOLO button** (green circle) — Press to start recording your voice question
 - **RUKO button** — Press to stop recording
 - Live transcript appears as you speak (using browser's Web Speech API)
-- Audio is sent to the backend → Nemotron transcribes → GPT-4o-mini generates a teaching response → ElevenLabs speaks it back
+- Audio is sent to the backend → Whisper transcribes → GPT-4o-mini generates a teaching response → ElevenLabs speaks it back
 - The response plays as audio and appears as text in the chat
 - **Text input** — Students can also type doubts in the text field at the bottom
 - The AI uses RAG to pull relevant textbook passages before answering, grounding responses in actual NCERT content
@@ -248,7 +248,7 @@ Sessions are sorted by date (newest first) and scoped to the logged-in user via 
                           ┌───────────────┼───────────────┐
                           │               │               │
                     ┌─────▼─────┐  ┌──────▼──────┐ ┌─────▼──────┐
-                    │  Nemotron  │  │  GPT-4o-mini │ │ ElevenLabs │
+                    │  Whisper   │  │  GPT-4o-mini │ │ ElevenLabs │
                     │   (STT)    │  │  (Teaching)  │ │   (TTS)    │
                     └───────────┘  └──────┬──────┘ └────────────┘
                                           │
@@ -259,9 +259,9 @@ Sessions are sorted by date (newest first) and scoped to the logged-in user via 
                                    └─────────────┘
 ```
 
-**Voice flow:** Student speaks → Browser records audio → Sent via WebSocket → Nemotron transcribes → ChromaDB retrieves relevant textbook passages → GPT-4o-mini generates a teaching response using the textbook context → ElevenLabs converts response to speech → Audio streamed back to browser
+**Voice flow:** Student speaks → Browser records audio → Sent via WebSocket → OpenAI Whisper transcribes (or ElevenLabs Scribe v2) → ChromaDB retrieves relevant textbook passages → GPT-4o-mini generates a teaching response using the textbook context → ElevenLabs converts response to speech → Audio streamed back to browser
 
-**Text flow:** Same as above, minus the Nemotron transcription step.
+**Text flow:** Same as above, minus the Whisper transcription step.
 
 **Flashcard/Quiz flow:** Student picks subject + chapters → Backend queries ChromaDB for matching chunks → GPT-4o-mini generates flashcards/questions from the textbook content → Returned via REST API → Session saved to Supabase
 

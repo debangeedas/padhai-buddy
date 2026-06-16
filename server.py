@@ -119,11 +119,6 @@ def get_system_prompt(language="english"):
     return SYSTEM_PROMPTS.get(language, SYSTEM_PROMPTS["english"])
 
 
-nvidia_client = OpenAI(
-    base_url="https://integrate.api.nvidia.com/v1",
-    api_key=os.getenv("NVIDIA_API_KEY", ""),
-)
-
 openai_client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY", ""),
 )
@@ -251,22 +246,33 @@ def build_messages(conversation: list[dict], language: str = "english", textbook
 
 
 def transcribe_and_respond(audio_base64: str, conversation: list[dict], language: str = "english", browser_transcript: str = "") -> tuple[str, list[dict]]:
-    # Step 1: Transcribe audio using Nemotron (always)
-    print("[INFO] Transcribing audio with Nemotron...")
-    transcription = nvidia_client.chat.completions.create(
-        model="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "audio_url", "audio_url": {"url": f"data:audio/webm;base64,{audio_base64}"}},
-                {"type": "text", "text": "Transcribe exactly what the student said. Output ONLY the transcription, nothing else."},
-            ],
-        }],
-        temperature=0.2,
-        max_tokens=512,
+    # Step 1: Transcribe audio
+    # Currently using OpenAI Whisper. To switch to ElevenLabs Scribe v2, comment out
+    # the Whisper block and uncomment the Scribe v2 block below.
+    import io
+    audio_bytes = base64.b64decode(audio_base64)
+
+    # --- OpenAI Whisper (active) ---
+    print("[INFO] Transcribing audio with OpenAI Whisper...")
+    audio_file = io.BytesIO(audio_bytes)
+    audio_file.name = "audio.webm"
+    transcription = openai_client.audio.transcriptions.create(
+        model="whisper-1",
+        file=audio_file,
+        language="hi" if language == "hindi" else "en",
     )
-    user_text = extract_reply(transcription).strip()
-    print(f"[INFO] Nemotron transcription: {user_text[:100]}...")
+    user_text = transcription.text.strip()
+    print(f"[INFO] Whisper transcription: {user_text[:100]}...")
+
+    # --- ElevenLabs Scribe v2 (inactive — uncomment to use, comment out Whisper above) ---
+    # print("[INFO] Transcribing audio with ElevenLabs Scribe v2...")
+    # transcription = eleven_client.speech_to_text.convert(
+    #     file=audio_bytes,
+    #     model_id="scribe_v2",
+    #     language_code="hin" if language == "hindi" else "eng",
+    # )
+    # user_text = transcription.text.strip()
+    # print(f"[INFO] Scribe v2 transcription: {user_text[:100]}...")
     if not user_text:
         user_text = "[Student asked via voice]"
 
