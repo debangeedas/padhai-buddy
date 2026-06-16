@@ -46,7 +46,10 @@ A simple 3-step flow is shown: Create account → Tap the mic → Get an explana
 
 Two buttons lead to **Log in** and **Sign up**.
 
-> 📸 *Add screenshot: Landing page*
+<img width="892" alt="Screenshot 2026-06-16 020245" src="https://github.com/user-attachments/assets/38c2c182-d0bf-4a51-80a5-c11b675f0adf" />
+
+<img width="892" alt="image" src="https://github.com/user-attachments/assets/84a8b608-d961-45d4-9915-46e5045973bc" />
+
 
 ---
 
@@ -59,8 +62,7 @@ A clean card-based form with:
 - "← Back" link to return to the landing page
 - Supabase handles authentication (email/password with email verification)
 
-> 📸 *Add screenshot: Login page*
-
+<img width="892" alt="image" src="https://github.com/user-attachments/assets/06a917ef-bb70-448e-9677-781675b8dbde" />
 ---
 
 ### 3. Onboarding (First-Time Setup)
@@ -83,8 +85,6 @@ New users go through a 4-step onboarding wizard. This personalizes their experie
 **Step 4 — Avatar**
 - Pick a fun avatar (owl, rocket, book, lightbulb, star, tree, etc.)
 - This appears in the sidebar and profile
-
-> 📸 *Add screenshots: Each onboarding step*
 
 ---
 
@@ -110,6 +110,8 @@ When starting a new chat, students see:
 - Two additional mode buttons:
   - **🗂️ Flashcards** — Enter flashcard study mode
   - **📝 Revision Quiz** — Enter quiz mode
+ 
+<img width="885" alt="image" src="https://github.com/user-attachments/assets/79cbcca3-5bfb-431f-9bf4-858096b8cc59" />
 
 #### Chat Interaction
 - Tapping a subject opens a voice/text chat scoped to that subject
@@ -121,7 +123,8 @@ When starting a new chat, students see:
 - **Text input** — Students can also type doubts in the text field at the bottom
 - The AI uses RAG to pull relevant textbook passages before answering, grounding responses in actual NCERT content
 
-> 📸 *Add screenshots: Welcome screen with subject buttons, active chat with voice interaction*
+<img width="962" alt="image" src="https://github.com/user-attachments/assets/bbfe7026-7525-4802-b8c7-0fadcdb50c58" />
+
 
 ---
 
@@ -148,7 +151,7 @@ For active recall study using textbook content.
 - All 10 cards are generated in one batch before the session starts (no mid-session loading)
 - Sessions are saved to Supabase for later review in the history sidebar
 
-> 📸 *Add screenshots: Chapter selection, flashcard front, flashcard back (flipped)*
+<img height="402" alt="image" src="https://github.com/user-attachments/assets/38721a44-d0a1-4e3a-8a24-3bff1a72600d" /> <img height="402" alt="image" src="https://github.com/user-attachments/assets/27f8f92e-c16d-431a-a7d6-1a8a8202bcfb" />
 
 ---
 
@@ -177,7 +180,7 @@ Multiple-choice quizzes generated from textbook content for self-assessment.
 - Questions, answers, and scores are persisted to Supabase
 - Each answer updates the session in real-time (so progress isn't lost if the page refreshes)
 
-> 📸 *Add screenshots: Quiz question with options, answer revealed, final results with review*
+<img width="891" alt="image" src="https://github.com/user-attachments/assets/71b542d9-ba6c-4c74-9899-b11df25f6efd" />
 
 ---
 
@@ -214,7 +217,8 @@ Accessed via "View profile" in the sidebar.
 
 **Save Button** — Persists profile changes to Supabase
 
-> 📸 *Add screenshots: Profile page with avatar, activity grid, quiz results dashboard*
+<img width="895" alt="image" src="https://github.com/user-attachments/assets/e56d0175-deed-4e85-a927-cda0f176763f" />
+<img width="895" alt="image" src="https://github.com/user-attachments/assets/f1714609-230e-43ee-9021-4acfdf93028a" />
 
 ---
 
@@ -233,7 +237,8 @@ Clicking any session loads it:
 
 Sessions are sorted by date (newest first) and scoped to the logged-in user via Supabase Row Level Security.
 
-> 📸 *Add screenshot: Sidebar showing mixed session types*
+<img width="341" height="445" alt="image" src="https://github.com/user-attachments/assets/d6fc01f4-8183-4a2f-a819-d1cf2526ab50" />
+
 
 ---
 
