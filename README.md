@@ -4,6 +4,8 @@ Padhai Buddy is a voice-first AI learning platform built for students in India w
 
 The goal is simple: every student deserves a patient teacher who speaks their language. Padhai Buddy uses OpenAI Whisper to transcribe spoken questions (even in mixed Hindi-English), retrieves relevant content from school textbooks via RAG, and responds in the student's chosen language with follow-up questions that keep the learning going.
 
+Note: Go to [WALKTHROUGH.md](https://github.com/debangeedas/padhai-buddy/blob/main/WALKTHROUGH.md) for a screen-by-screen walkthrough.
+
 ## Features
 
 - **Voice-first interaction** — tap and talk, just like a conversation with a tutor
@@ -13,6 +15,19 @@ The goal is simple: every student deserves a patient teacher who speaks their la
 - **Academic guardrails** — off-topic questions are politely redirected back to studies
 - **Student profiles** — avatar picker, language preference, GitHub-style activity grid
 - **Chat history** — review past learning sessions
+
+## How It Works
+
+1. Student taps the mic button and speaks their question
+2. Browser's Web Speech API provides a live transcript (used for RAG search)
+3. Audio is sent to OpenAI Whisper via WebSocket for transcription (switchable to ElevenLabs Scribe v2)
+4. Relevant textbook chunks are retrieved from ChromaDB
+5. GPT-4o-mini generates a conversational response grounded in textbook content
+6. Response is sent back as text and read aloud via ElevenLabs TTS
+
+## Link
+- [https://padhai-buddy.netlify.app/](https://padhai-buddy.netlify.app/)
+- P.S. Backend not connected due to lack of free resources :') - Go to [WALKTHROUGH.md](https://github.com/debangeedas/padhai-buddy/blob/main/WALKTHROUGH.md) for a screen-by-screen walkthrough.
 
 ## Tech Stack
 
@@ -121,16 +136,3 @@ npm run dev
 ```
 
 Open http://localhost:3000, sign up, set your language in Profile, and start asking doubts.
-
-## How It Works
-
-1. Student taps the mic button and speaks their question
-2. Browser's Web Speech API provides a live transcript (used for RAG search)
-3. Audio is sent to OpenAI Whisper via WebSocket for transcription (switchable to ElevenLabs Scribe v2)
-4. Relevant textbook chunks are retrieved from ChromaDB
-5. GPT-4o-mini generates a conversational response grounded in textbook content
-6. Response is sent back as text and read aloud via ElevenLabs TTS
-
-## License
-
-MIT
